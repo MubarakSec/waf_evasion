@@ -1,0 +1,20 @@
+name: CI
+on:
+  push: { branches: [ main ] }
+  pull_request: { branches: [ main ] }
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      # A clean install MUST import cleanly. family_orcha shipped with three
+      # undeclared runtime deps and could not be imported after a clean install;
+      # the umbrella venv hid it and only isolated CI found it.
+      - run: pip install -e ".[dev]"
+      - run: python -c "import evasion; print(evasion.__version__)"
+      - run: ruff check evasion/ tests/
+      - run: pytest -q
