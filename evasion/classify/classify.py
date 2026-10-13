@@ -53,7 +53,11 @@ SIGNATURES: tuple[WAFSignature, ...] = (
     WAFSignature(
         name="akamai",
         headers=("akamai-grn", "akamai-grn-akamai"),
-        body_markers=("access denied", "reference #"),
+        # "reference #" is Akamai's distinctive signature. "access denied" was
+        # here too and is wrong: it is what an ordinary nginx 403 says, so
+        # it named Akamai on any plain 403 -- this classifier guessing, which
+        # is the one thing it exists not to do.
+        body_markers=("reference #",),
     ),
     WAFSignature(
         name="imperva",
