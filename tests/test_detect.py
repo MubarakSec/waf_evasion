@@ -104,19 +104,38 @@ def test_status_is_checked_case_insensitively_in_body() -> None:
     assert blocked is True
 
 
-# --- known defect, recorded not fixed ---------------------------------------
+# --- acscan's actual replay-result shape ------------------------------------
+#
+# acscan does not hand this package an httpx.Response. It hands it the dict built
+# by `_format_replay_result` (`acscan/engine/replay/core.py:176`). The original
+# attribute-only reader returned (False, "") for every one of those, so the WAF
+# sentinel in `executor/core.py:340` could never count a block and never paused
+# the executor. These tests pin the dict shape so that cannot silently return.
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "KNOWN DEFECT, not fixed in Phase 1a. acscan calls is_waf_blocked with the "
-        "dict returned by _format_replay_result (keys res_status/res_body), but the "
-        "function reads .status_code/.text, so getattr() yields 0 and the WAF "
-        "sentinel at acscan/engine/pipeline/executor/core.py:229 can never fire. "
-        "Recorded in ARCHITECTURE.md; fixing it is a behaviour change and belongs "
-        "in a later commit. strict=True so that fixing it forces this marker off."
-    ),
-)
-def test_dict_result_shape_is_detected() -> None:
+def test_acscan_replay_dict_is_detected() -> None:
+    """The shape acscan really passes must reach the same verdict."""
     assert is_waf_blocked({"res_status": 429, "res_body": ""})[0] is True
+    assert is_waf_blocked({"res_status": 403, "res_body": CF_CHALLENGE})[0] is True
+    assert is_waf_blocked({"res_status": 502, "res_body": "cloudflare error 1016"})[0] is True
+
+
+def test_acscan_replay_dict_does_not_create_false_blocks() -> None:
+    """A clean replay dict must stay clean -- the FP half of the same fix.
+
+    A false block is as expensive as a missed one: it tells the operator a
+    target they were about to give up on is hostile, and vice versa.
+    """
+    assert is_waf_blocked({"res_status": 200, "res_body": '{"users": []}'}) == (False, "")
+    assert is_waf_blocked({"res_status": 403, "res_body": '{"detail":"Not authenticated"}'}) == (False, "")
+    assert is_waf_blocked({"res_status": 404, "res_body": "Not Found"}) == (False, "")
+
+
+def test_string_status_is_tolerated() -> None:
+    """Some replay paths store status as a string; '429' must not read as clean."""
+    assert is_waf_blocked({"res_status": "429"})[0] is True
+
+
+def test_bool_status_is_not_a_status() -> None:
+    """bool subclasses int; True must never read as a status code."""
+    assert is_waf_blocked({"res_status": True}) == (False, "")

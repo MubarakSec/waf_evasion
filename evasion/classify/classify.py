@@ -14,6 +14,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+# Shared accessors. These read acscan's replay-result dict as well as a response
+# object; reading attributes only made this classifier return UNKNOWN for every
+# replay, which is the same defect `detect.response_field` documents.
+from evasion.detect import body_of, headers_of
+
 # Confidence bands. `UNKNOWN` is what an unrecognised response gets, and it is
 # deliberately the most common outcome -- a classifier that rarely says "I don't
 # know" is lying.
@@ -98,24 +103,11 @@ UNKNOWN = Classification(waf="unknown", confidence=UNKNOWN_CONFIDENCE, evidence=
 
 
 def _headers_of(resp: Any) -> dict[str, str]:
-    raw = getattr(resp, "headers", None)
-    if raw is None:
-        return {}
-    try:
-        return {str(k).lower(): str(v) for k, v in dict(raw).items()}
-    except (TypeError, ValueError, AttributeError):
-        return {}
+    return headers_of(resp)
 
 
 def _body_of(resp: Any) -> str:
-    for attr in ("text", "body", "content"):
-        value = getattr(resp, attr, None)
-        if isinstance(value, str):
-            return value.lower()
-    data = getattr(resp, "content", None)
-    if isinstance(data, (bytes, bytearray)):
-        return bytes(data[:4096]).decode("utf-8", errors="replace").lower()
-    return ""
+    return body_of(resp)
 
 
 def classify(resp: Any) -> Classification:
