@@ -1,5 +1,10 @@
 # ARCHITECTURE — waf_evasion
 
+> Historical extraction snapshot: phase-status and byte-identical claims below
+> describe the initial extraction, not the current checkout. acscan now imports
+> components from `evasion`, and classification and assessment exist in this
+> package. See the README and current source for present behavior.
+
 ## Status: Phase 1a landed, Phase 2 not started
 
 Phase 1a is the extraction only. No new capability. acscan is **untouched** —

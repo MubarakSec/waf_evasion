@@ -8,19 +8,13 @@ calibration) and closes the loop those pieces leave open.
 
 ## The problem
 
-The family can tell you it got blocked, and it can mutate requests — but nothing
-connects the two.
+The family can detect blocking responses and mutate requests. This package
+provides shared detection and classification to help distinguish blocked
+coverage from a clean result.
 
-```
-blocked?  ──yes──>  pause          (detection, passive)
-                      │
-request   ───────────┘              (evasion, blind: fires the same way
-                                     whether or not a WAF exists)
-```
-
-So a WAF-fronted target and an unexploitable one look identical in the output.
-For a hunter that is worse than a clean result, because a blocked scan is
-indistinguishable from a target with nothing to find.
+Without explicit coverage reporting, a WAF-fronted target can be mistaken for a
+target with nothing to find. Integrations must surface blocking evidence rather
+than treating the absence of findings as proof of clean coverage.
 
 ## The loop
 
@@ -42,27 +36,20 @@ reply became a MEDIUM "reflection enabled" on every WAF-fronted host.
 
 ## Status
 
-**Phase 1a landed: the extraction.** `is_waf_blocked`, the device-profile
-engine, request polymorphism, the request-mutation entry point and WAF-aware
-rate calibration were lifted out of `acscan` verbatim — every moved file is
-byte-identical to its source, so `diff` against the acscan path is empty.
-
-No new capability yet, and `acscan` is untouched: nothing imports from here
-yet. That wiring is Phase 1b and is blocked on packaging, not on code. See
-[ARCHITECTURE.md](ARCHITECTURE.md) for what moved, what deliberately did not,
-the three design questions and how they were decided, and four defects found
-while testing that are recorded rather than fixed.
+The extracted library includes WAF detection, classification, response
+assessment, request mutation and rate calibration. acscan imports its detection,
+assessment, request mutation and rate calibration components. See
+[ARCHITECTURE.md](ARCHITECTURE.md) for the extraction history and design
+decisions; its phase-status notes describe the earlier extraction snapshot.
 
 See [HANDOFF.md](HANDOFF.md) before starting — it records the mistakes from the
 session that built the sibling repos, several of which are easy to repeat.
 
 ## Install
 
-```bash
-python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"
-pytest
-```
+Use the Orcha root environment and installation workflow; root-managed
+dependency resolution is still being unified. See the root
+`docs/MONOREPO_UNIFICATION.md` for the current work.
 
 ## Scope
 
